@@ -1485,17 +1485,10 @@ if (state.fisherman) {
     updateFishermanBanner();
     updateNamePresets(state.fisherman);
 }
-// Show landing or jump straight to app if area was remembered
-if (state.area) {
-    document.getElementById('header-area-name').textContent = state.area;
-    document.getElementById('area-landing').classList.remove('active');
-    document.getElementById('app-container').classList.add('active');
-    updateLastUsedBadge(state.area);
-    loadCatches();
-} else {
-    document.getElementById('area-landing').classList.add('active');
-    document.getElementById('app-container').classList.remove('active');
-}
+// Always show area landing on load; highlight last-used card if any
+document.getElementById('area-landing').classList.add('active');
+document.getElementById('app-container').classList.remove('active');
+if (state.area) updateLastUsedBadge(state.area);
 subscribeRealtime();
 </script>
 </body>
