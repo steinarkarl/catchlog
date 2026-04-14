@@ -414,6 +414,25 @@
         .fisherman-banner span { font-size: 20px; }
         .fisherman-banner p { font-size: 14px; color: var(--text-muted); line-height: 1.3; }
         .fisherman-banner p strong { color: var(--text); font-size: 15px; }
+        .name-presets { display: flex; gap: 8px; margin-top: 8px; }
+        .name-preset {
+            flex: 1;
+            padding: 11px 6px;
+            background: var(--input-bg);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .name-preset.active {
+            border-color: var(--accent);
+            background: rgba(74,222,128,0.12);
+            color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -661,6 +680,11 @@
             <label>Your Name</label>
             <input type="text" id="fisherman-input" placeholder="Enter your name…"
                    oninput="saveFisherman()" autocomplete="off">
+            <div class="name-presets">
+                <button class="name-preset" onclick="pickName('Steinar')">Steinar</button>
+                <button class="name-preset" onclick="pickName('Doddi')">Doddi</button>
+                <button class="name-preset" onclick="pickName('Smári')">Smári</button>
+            </div>
         </div>
 
         <div id="fisherman-banner" class="fisherman-banner" style="display:none">
@@ -1117,6 +1141,21 @@ function saveFisherman() {
     state.fisherman = name;
     save();
     updateFishermanBanner();
+    updateNamePresets(name);
+}
+
+function pickName(name) {
+    document.getElementById('fisherman-input').value = name;
+    state.fisherman = name;
+    save();
+    updateFishermanBanner();
+    updateNamePresets(name);
+}
+
+function updateNamePresets(name) {
+    document.querySelectorAll('.name-preset').forEach(b => {
+        b.classList.toggle('active', b.textContent === name);
+    });
 }
 function updateFishermanBanner() {
     const name = state.fisherman;
@@ -1250,6 +1289,7 @@ document.getElementById('header-date').textContent =
 if (state.fisherman) {
     document.getElementById('fisherman-input').value = state.fisherman;
     updateFishermanBanner();
+    updateNamePresets(state.fisherman);
 }
 subscribeRealtime();
 </script>
