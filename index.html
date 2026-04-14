@@ -486,8 +486,7 @@
             width: 100%;
         }
         .area-card:active { transform: scale(0.98); }
-        .area-card:hover,
-        .area-card.last-used {
+        .area-card:hover {
             border-color: var(--accent);
             background: rgba(74,222,128,0.08);
         }
@@ -506,18 +505,6 @@
             margin-top: 4px;
             padding-left: 32px;
         }
-        .area-last-badge {
-            margin-left: auto;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent);
-            background: rgba(74,222,128,0.12);
-            border: 1px solid rgba(74,222,128,0.3);
-            border-radius: 20px;
-            padding: 3px 10px;
-            white-space: nowrap;
-        }
-
         /* ── Change-area button in header ── */
         .header-area-btn {
             margin-left: auto;
@@ -558,7 +545,6 @@
         <button class="area-card" id="card-veidivötn" onclick="selectArea('Veiðivötn')">
             <div class="area-card-name">
                 <span>🏔️</span> Veiðivötn
-                <span class="area-last-badge" id="badge-veidivötn" style="display:none">Last used</span>
             </div>
             <div class="area-card-sub">Highland lakes, South Iceland</div>
         </button>
@@ -566,7 +552,6 @@
         <button class="area-card" id="card-laxa" onclick="selectArea('Laxá í Mývatnssveit')">
             <div class="area-card-name">
                 <span>🌿</span> Laxá í Mývatnssveit
-                <span class="area-last-badge" id="badge-laxa" style="display:none">Last used</span>
             </div>
             <div class="area-card-sub">Lake Mývatn district, North Iceland</div>
         </button>
@@ -574,7 +559,6 @@
         <button class="area-card" id="card-elliðaár" onclick="selectArea('Elliðaár')">
             <div class="area-card-name">
                 <span>🐟</span> Elliðaár
-                <span class="area-last-badge" id="badge-elliðaár" style="display:none">Last used</span>
             </div>
             <div class="area-card-sub">Reykjavík city river</div>
         </button>
@@ -1067,8 +1051,6 @@ function selectArea(area) {
     // Swap views
     document.getElementById('area-landing').classList.remove('active');
     document.getElementById('app-container').classList.add('active');
-    // Highlight last-used badge on cards for next time
-    updateLastUsedBadge(area);
     // Load catches for this area
     loadCatches();
     // Reset to log tab
@@ -1078,18 +1060,6 @@ function selectArea(area) {
 function showAreaSelector() {
     document.getElementById('app-container').classList.remove('active');
     document.getElementById('area-landing').classList.add('active');
-    updateLastUsedBadge(state.area);
-}
-
-function updateLastUsedBadge(area) {
-    Object.entries(AREA_CARD_IDS).forEach(([name, id]) => {
-        const card  = document.getElementById('card-' + id);
-        const badge = document.getElementById('badge-' + id);
-        if (!card || !badge) return;
-        const isLast = name === area;
-        badge.style.display = isLast ? '' : 'none';
-        card.classList.toggle('last-used', isLast);
-    });
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
@@ -1485,10 +1455,9 @@ if (state.fisherman) {
     updateFishermanBanner();
     updateNamePresets(state.fisherman);
 }
-// Always show area landing on load; highlight last-used card if any
+// Always show area landing on load
 document.getElementById('area-landing').classList.add('active');
 document.getElementById('app-container').classList.remove('active');
-if (state.area) updateLastUsedBadge(state.area);
 subscribeRealtime();
 </script>
 </body>
