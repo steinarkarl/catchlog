@@ -505,6 +505,48 @@
             margin-top: 4px;
             padding-left: 32px;
         }
+        .area-card.new-area {
+            border-style: dashed;
+            border-color: var(--text-muted);
+        }
+        .area-card.new-area:hover { border-color: var(--accent); }
+        .area-card.new-area .area-card-name { color: var(--text-muted); }
+
+        /* ── Custom area input panel ── */
+        #custom-area-panel {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 32px;
+            flex: 1;
+        }
+        #custom-area-panel.active { display: flex; }
+        #custom-area-panel label {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        #custom-area-input {
+            background: var(--surface);
+            border: 2px solid var(--accent);
+            border-radius: 14px;
+            padding: 16px 18px;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            width: 100%;
+            outline: none;
+        }
+        #custom-area-input::placeholder { color: var(--text-muted); font-weight: 400; }
+        #custom-area-back {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            padding: 0;
+            margin-top: 4px;
+        }
         /* ── Change-area button in header ── */
         .header-area-btn {
             margin-left: auto;
@@ -562,6 +604,23 @@
             </div>
             <div class="area-card-sub">Reykjavík city river</div>
         </button>
+
+        <button class="area-card new-area" onclick="showCustomAreaInput()">
+            <div class="area-card-name">
+                <span>➕</span> New area / Nýtt svæði
+            </div>
+        </button>
+    </div>
+
+    <!-- Custom area input -->
+    <div id="custom-area-panel">
+        <label>Type the fishing area name:</label>
+        <input id="custom-area-input" type="text" placeholder="e.g. Þverá, Norðurá…"
+               oninput="updateCustomAreaBtn()"
+               onkeydown="if(event.key==='Enter') confirmCustomArea()">
+        <button class="btn-primary" id="custom-area-confirm" onclick="confirmCustomArea()" disabled
+                style="margin-top:4px">Go fishing →</button>
+        <button id="custom-area-back" onclick="hideCustomAreaInput()">← Back</button>
     </div>
 </div>
 
@@ -1060,6 +1119,31 @@ function selectArea(area) {
 function showAreaSelector() {
     document.getElementById('app-container').classList.remove('active');
     document.getElementById('area-landing').classList.add('active');
+    hideCustomAreaInput();
+}
+
+function showCustomAreaInput() {
+    document.getElementById('area-cards').style.display = 'none';
+    document.getElementById('custom-area-panel').classList.add('active');
+    document.getElementById('custom-area-input').value = '';
+    document.getElementById('custom-area-confirm').disabled = true;
+    setTimeout(() => document.getElementById('custom-area-input').focus(), 50);
+}
+
+function hideCustomAreaInput() {
+    document.getElementById('custom-area-panel').classList.remove('active');
+    document.getElementById('area-cards').style.display = '';
+}
+
+function updateCustomAreaBtn() {
+    const val = document.getElementById('custom-area-input').value.trim();
+    document.getElementById('custom-area-confirm').disabled = val.length === 0;
+}
+
+function confirmCustomArea() {
+    const val = document.getElementById('custom-area-input').value.trim();
+    if (!val) return;
+    selectArea(val);
 }
 
 // ─── Navigation ───────────────────────────────────────────────────────────────
