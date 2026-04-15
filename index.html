@@ -1122,7 +1122,7 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const DEFAULT_FLIES = [
     'Nobbler - Black', 'Nobbler - Red', 'Nobbler - White',
     'Gullið', 'Rektor', 'Krókurinn', 'White boobies',
-    'Black Ghost', 'Kameltá', 'Atlas'
+    'Black Ghost', 'Kameltá', 'Atlas', 'Pheasant Tail'
 ];
 const DEFAULT_SPOTS = ['Upper Pool', 'Long Run', 'Mill Bridge'];
 
@@ -1141,9 +1141,9 @@ function load() {
         if (raw) {
             const prefs = JSON.parse(raw);
             // v2: reset flies to new Icelandic defaults
-            if (prefs.flyVersion !== 2) {
+            if (prefs.flyVersion !== 3) {
                 prefs.flies = [...DEFAULT_FLIES];
-                prefs.flyVersion = 2;
+                prefs.flyVersion = 3;
                 localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
             }
             if (prefs.flies)      state.flies      = prefs.flies;
