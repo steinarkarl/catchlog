@@ -1140,6 +1140,12 @@ function load() {
         const raw = localStorage.getItem('catchlog_prefs');
         if (raw) {
             const prefs = JSON.parse(raw);
+            // v2: reset flies to new Icelandic defaults
+            if (prefs.flyVersion !== 2) {
+                prefs.flies = [...DEFAULT_FLIES];
+                prefs.flyVersion = 2;
+                localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
+            }
             if (prefs.flies)      state.flies      = prefs.flies;
             if (prefs.spots)      state.spots      = prefs.spots;
             if (prefs.fisherman)  state.fisherman  = prefs.fisherman;
