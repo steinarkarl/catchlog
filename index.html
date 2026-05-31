@@ -1160,15 +1160,27 @@ function load() {
 // ─── Load catches from Supabase ───────────────────────────────────────────────
 async function loadCatches() {
     showListLoading(true);
-    const { data, error } = await db
-        .from('catches')
-        .select('*')
-        .eq('area', state.area)
-        .order('created_at', { ascending: false });
+    let lastError = null;
+    // Retry a few times — covers flaky mobile signal and Supabase cold starts.
+    for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 600 * attempt));
+        const { data, error } = await db
+            .from('catches')
+            .select('*')
+            .eq('area', state.area)
+            .order('created_at', { ascending: false });
+        if (!error) {
+            showListLoading(false);
+            state.catches = data || [];
+            renderCatches();
+            return;
+        }
+        lastError = error;
+        console.error(`loadCatches attempt ${attempt + 1} failed:`, error);
+    }
     showListLoading(false);
-    if (error) { showToast('Could not load catches ✗'); return; }
-    state.catches = data || [];
-    renderCatches();
+    // All retries failed. Keep any previously loaded catches on screen.
+    showToast('Could not load catches ✗ — tap Catches to retry');
 }
 
 function showListLoading(on) {
