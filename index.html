@@ -1144,10 +1144,12 @@ function load() {
         const raw = localStorage.getItem('catchlog_prefs');
         if (raw) {
             const prefs = JSON.parse(raw);
-            // reset flies to new Icelandic defaults
-            if (prefs.flyVersion !== 4) {
-                prefs.flies = [...DEFAULT_FLIES];
-                prefs.flyVersion = 4;
+            // Merge in any new default flies without wiping the user's custom ones.
+            if (prefs.flyVersion !== 5) {
+                const existing = Array.isArray(prefs.flies) ? prefs.flies : [];
+                const missing = DEFAULT_FLIES.filter(f => !existing.includes(f));
+                prefs.flies = [...existing, ...missing];
+                prefs.flyVersion = 5;
                 localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
             }
             if (prefs.flies)      state.flies      = prefs.flies;
