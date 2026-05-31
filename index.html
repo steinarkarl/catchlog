@@ -1130,13 +1130,82 @@ const DEFAULT_FLIES = [
 ];
 const DEFAULT_SPOTS = ['Upper Pool', 'Long Run', 'Mill Bridge'];
 
-let state = { catches: [], flies: [...DEFAULT_FLIES], spots: [...DEFAULT_SPOTS], fisherman: '', area: '' };
+// Per-area default spot lists. Areas not listed here fall back to DEFAULT_SPOTS.
+const AREA_DEFAULT_SPOTS = {
+    'Laxá í Mývatnssveit': [
+    "Geirastaðaskurður", "Brotaflói (Helluvað)", "Skriðuflói (Hofsstaðaey)", "Vörðuflói (Brettingstaðir)",
+    "Vörðuflói (Hofsstaðaey)", "Lambeyjarstrengur (Helluvað)", "Stekkjarskerjarpollur", "Brotaflói (Hofsstaðir)",
+    "Steinsrass (Arnarvatn)", "Ærhelluflói (Hofsstaðir)", "Gafl", "Þuríðarflói (Arnarvatn)",
+    "Sauðavað", "Garðsendi (Hofstaðaey)", "Hagatá (Geldingaey)", "Þóruvað",
+    "Brunnhellishró (Geldingaey)", "Bílduhylur", "Pollur", "Lambeyjarstrengur (Hofsstaðir)",
+    "Þúfa", "Garðsendi (Hofsstaðir)", "Steinsrass (Hofsstaðir)", "Ferjustaður (Hofsstaðaey)",
+    "Mjósund", "Hólkotsflói (Brettingsstaðir)", "Dalgeirar", "Skriðuflói (Hofsstaðir)",
+    "Stóravik (Geldingaey)", "Mjóddin", "Sandvík", "Skötueyjarvað",
+    "Ferjustaður", "Goggavík, efri (Brettingstaðir)", "Goggavík, neðri (Brettingstaðir)", "Langhólmi",
+    "Heimakvísl-Geirstaðakvíslar", "Ærhelluflói (Arnarvatn)", "Brunnhellishró (Geirastaðir)", "Hólkotsflói (Hamar)",
+    "Helluvað", "Skipthólmadráttur (Geldingaey)", "Geldingatóftaflói (Hofsstaðaey)", "Landhólmar",
+    "Snúningshylur", "Steinbogaey", "Hrafnstaðaey (Hamar)", "Kleifarhólmi",
+    "Langavík", "Geldingaeyjarbrýr (Geldingaey)", "Ytri-Landhólmar", "Hagatá (Geirastaðir)",
+    "Brunnhellishólmi", "Hólsnef", "Sprengjuflói (Geirastaðir)", "Ytritangi",
+    "Hesthúsflói (Hamar)", "Dowdingssteinn", "Gunnlaugsvað (Arnarvatn)", "Strákakvísl",
+    "Hólmgeirsvík", "Görn", "Steinbogi", "Mýnes",
+    "Hólsdráttur", "Stangarhald", "Hafursey", "Húsandarvík - Sandvík",
+    "Kötlustrengur (Brúin)", "Hafurseyjarpollur", "Þuríðarflói (Hofsstaðir)", "Brotahólmar",
+    "Skötuey", "Kötluhró", "Stöpulhólmar", "Heimakvísl Geirastaðakvíslar Réttarbjarg",
+    "Hrútspollur", "Landhólmi", "Geldingaeyjarbrýr (Arnarvatn)", "Veraldarofsi",
+    "Brothólavík", "Stóravik (Geirastaðir)", "Hesthúsaflói (Brettingsstaðir)", "Frímerkið",
+    "Húsandarvík", "Hellishólmi", "Urðarfoss", "Gunnlaugsvað (Geldingaey)",
+    "Lambeyjarvað", "Syðri Landhólmar", "Gálufit (Hofsstaðaey)", "Ferjustaður (Hofsstaðir)",
+    "Brúarhólmi", "Lambeyjarsker", "Lambeyjartá", "Álftadráttur",
+    "Vatnsgjá", "Strengir Syðri", "Krákárhólmar", "Brautarsteinsvað",
+    "Þorsteinssker", "Húsalækur", "Miðmundarvað (Geirastaðir)", "Geldingatóftaflói (Hofsstaðir)",
+    "Nýjavað", "Lambey", "Hvannhólmi", "Ærey",
+    "Kláfur (Arnarvatn)", "Miðmundarklettur", "Ferjuhólmi Nes", "Bjarghólmi",
+    "Jarpkollusker", "Kötlustrengur", "Flasarhólmar", "Strengir",
+    "Kaffiklettar", "Ærhelluhólmar", "Ferjustaður (Geldingaey)", "Sauðavaðssker (Arnarvatn)",
+    "Undir Björgum (Geirastaðir)", "Skipthólmi", "Hrúthólmi", "Viðarhólmar",
+    "Guðjónsflúð", "Miðmundarvað (Geldingaey)", "Skipdráttur", "Hrúteyjartá",
+    "Stangahald", "Brókaklettsvík", "Slæðan (Geldingaey)", "Goggavík (Hofsstaðaey)",
+    "Sauðatangi", "Stekkjarvík", "Ferjubakki", "Víkin",
+    "Strákaflói (Brettingstaðir)", "Brúarbreiða", "Hrafnstaðaey (Brettingsstaðir)", "Sprengjuflói (Geldingaey)",
+    "Stíflubjörg (Arnarvatnsá)", "Stekkjarhagi", "Svínshryggur", "Undir Björgum (Geldingaey)",
+    "Helgey", "Hrúthólmastrengur", "Vatnsgjárhólmar", "Gálufit (Hofsstaðir)",
+    "Longara-pollur", "Kláfur", "Þóroddsbeygja", "Fúlavík",
+    "Þúfnahólmar", "Beitarhús", "Helluvaðsá", "Hafurseyjartá",
+    "Höfðar (Hamar)", "Strengir Nyðri", "Langhólmi (Brettingsstaðir)", "Strákaflói (Hamar)",
+    "Hellupollar", "Slæðan (Geirastaðir)", "Björg", "Áshólmi",
+    "Brautabreiða", "Hrúthólmasker", "Kötlusker", "Pokapollur",
+    "Hrókvörðugil", "Stökkull", "Höfðar (Brettingsstaðir)", "Hrappsstaðavík",
+    "Strákabakki", "Fótarhólmi", "Sauðavaðssker (Geldingaey)", "Nafursker",
+    "Ófærusker", "Guðsflúð", "Fúshólmi", "Fúshólmakvísl",
+    "Ófærusker - Sperrhólmi", "Flathólmakvísl", "Langhólmi (Hamar)", "Aðhald",
+    "Nef Ferjuhellir", "Stólpahellir", "Strákavað (Hamar)", "Strákavað (Brettingstaðir)",
+    "Kolalág", "Nöf Flathellir", "Vaðpollur", "Hólmakvísl",
+    "Hamarsnes", "Húsavik", "Nónvik", "Pollalækur"
+    ]
+};
+const FLY_VERSION = 5;
+const SPOTS_VERSION = 1;
+function defaultSpotsFor(area) {
+    return AREA_DEFAULT_SPOTS[area] ? [...AREA_DEFAULT_SPOTS[area]] : [...DEFAULT_SPOTS];
+}
+
+let state = { catches: [], flies: [...DEFAULT_FLIES], spots: [...DEFAULT_SPOTS], spotsByArea: {}, fisherman: '', area: '' };
 let selectedGender = null;
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
 function save() {
-    // catches live in Supabase; only save local prefs
-    const prefs = { flies: state.flies, spots: state.spots, fisherman: state.fisherman, area: state.area };
+    // catches live in Supabase; only save local prefs.
+    // Keep the active area's spot edits in the per-area map before persisting.
+    if (state.area) state.spotsByArea[state.area] = state.spots;
+    const prefs = {
+        flies: state.flies,
+        flyVersion: FLY_VERSION,
+        spotsByArea: state.spotsByArea,
+        spotsVersion: SPOTS_VERSION,
+        fisherman: state.fisherman,
+        area: state.area
+    };
     localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
 }
 function load() {
@@ -1145,17 +1214,35 @@ function load() {
         if (raw) {
             const prefs = JSON.parse(raw);
             // Merge in any new default flies without wiping the user's custom ones.
-            if (prefs.flyVersion !== 5) {
+            if (prefs.flyVersion !== FLY_VERSION) {
                 const existing = Array.isArray(prefs.flies) ? prefs.flies : [];
                 const missing = DEFAULT_FLIES.filter(f => !existing.includes(f));
                 prefs.flies = [...existing, ...missing];
-                prefs.flyVersion = 5;
-                localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
+                prefs.flyVersion = FLY_VERSION;
             }
+            // Build the per-area spot map, merging in new defaults without wiping custom spots.
+            let map = (prefs.spotsByArea && typeof prefs.spotsByArea === 'object') ? prefs.spotsByArea : {};
+            if (prefs.spotsVersion !== SPOTS_VERSION) {
+                Object.keys(AREA_DEFAULT_SPOTS).forEach(area => {
+                    const existing = Array.isArray(map[area]) ? map[area] : [];
+                    const missing  = AREA_DEFAULT_SPOTS[area].filter(s => !existing.includes(s));
+                    map[area] = [...existing, ...missing];
+                });
+                prefs.spotsByArea = map;
+                prefs.spotsVersion = SPOTS_VERSION;
+                delete prefs.spots; // drop the legacy global spot list
+            }
+            localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
+
             if (prefs.flies)      state.flies      = prefs.flies;
-            if (prefs.spots)      state.spots      = prefs.spots;
+            state.spotsByArea = map;
             if (prefs.fisherman)  state.fisherman  = prefs.fisherman;
             if (prefs.area)       state.area       = prefs.area;
+            // Point the active spot list at the restored area (seed if first visit).
+            if (state.area) {
+                if (!Array.isArray(state.spotsByArea[state.area])) state.spotsByArea[state.area] = defaultSpotsFor(state.area);
+                state.spots = state.spotsByArea[state.area];
+            }
         }
     } catch(e) {}
 }
@@ -1231,6 +1318,9 @@ const AREA_CARD_IDS = {
 
 function selectArea(area) {
     state.area = area;
+    // Load this area's spot list (seed from defaults on first visit).
+    if (!Array.isArray(state.spotsByArea[area])) state.spotsByArea[area] = defaultSpotsFor(area);
+    state.spots = state.spotsByArea[area];
     save();
     // Update header
     document.getElementById('header-area-name').textContent = area;
