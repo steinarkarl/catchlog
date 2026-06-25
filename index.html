@@ -998,18 +998,9 @@
         <!-- Fisherman name -->
         <div class="form-group">
             <label>Your Name</label>
-            <select id="fisherman-select" onchange="onFishermanSelect()">
-                <option value="">Select angler…</option>
-                <option value="Steinar">Steinar</option>
-                <option value="Doddi">Doddi</option>
-                <option value="Smári">Smári</option>
-                <option value="Halli">Halli</option>
-                <option value="Gústi">Gústi</option>
-                <option value="Haukur">Haukur</option>
-                <option value="__other__">Other…</option>
-            </select>
+            <select id="fisherman-select" onchange="onFishermanSelect()"></select>
             <input type="text" id="fisherman-input" placeholder="Enter name…"
-                   oninput="saveFisherman()" autocomplete="off" style="display:none;margin-top:8px">
+                   oninput="saveFisherman()" onchange="commitCustomAngler()" autocomplete="off" style="display:none;margin-top:8px">
         </div>
 
         <div id="fisherman-banner" class="fisherman-banner" style="display:none">
@@ -1240,7 +1231,8 @@ function defaultSpotsFor(area) {
     return AREA_DEFAULT_SPOTS[area] ? [...AREA_DEFAULT_SPOTS[area]] : [...DEFAULT_SPOTS];
 }
 
-let state = { catches: [], flies: [...DEFAULT_FLIES], spots: [...DEFAULT_SPOTS], spotsByArea: {}, fisherman: '', area: '' };
+const DEFAULT_ANGLERS = ['Steinar', 'Doddi', 'Smári', 'Halli', 'Gústi', 'Haukur'];
+let state = { catches: [], flies: [...DEFAULT_FLIES], spots: [...DEFAULT_SPOTS], spotsByArea: {}, anglers: [...DEFAULT_ANGLERS], fisherman: '', area: '' };
 let selectedGender = null;
 
 // ─── Persistence ─────────────────────────────────────────────────────────────
@@ -1253,6 +1245,7 @@ function save() {
         flyVersion: FLY_VERSION,
         spotsByArea: state.spotsByArea,
         spotsVersion: SPOTS_VERSION,
+        anglers: state.anglers,
         fisherman: state.fisherman,
         area: state.area
     };
@@ -1286,6 +1279,8 @@ function load() {
 
             if (prefs.flies)      state.flies      = prefs.flies;
             state.spotsByArea = map;
+            const savedAnglers = Array.isArray(prefs.anglers) ? prefs.anglers : [];
+            state.anglers = [...DEFAULT_ANGLERS, ...savedAnglers.filter(a => !DEFAULT_ANGLERS.includes(a))];
             if (prefs.fisherman)  state.fisherman  = prefs.fisherman;
             if (prefs.area)       state.area       = prefs.area;
             // Point the active spot list at the restored area (seed if first visit).
@@ -1717,6 +1712,27 @@ function applyFishermanToUI() {
         input.value = '';
     }
 }
+function renderAnglerOptions() {
+    const sel = document.getElementById('fisherman-select');
+    sel.innerHTML = '<option value="">Select angler…</option>'
+        + state.anglers.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('')
+        + '<option value="__other__">Other…</option>';
+}
+
+function commitCustomAngler() {
+    const input = document.getElementById('fisherman-input');
+    const name = input.value.trim();
+    if (!name) return;
+    if (!state.anglers.includes(name)) state.anglers.push(name);
+    state.fisherman = name;
+    save();
+    renderAnglerOptions();
+    document.getElementById('fisherman-select').value = name;
+    input.style.display = 'none';
+    input.value = '';
+    updateFishermanBanner();
+}
+
 function updateFishermanBanner() {
     const name = state.fisherman;
     const banner = document.getElementById('fisherman-banner');
@@ -1846,6 +1862,7 @@ function hideEditSpotList() { setTimeout(() => { document.getElementById('edit-s
 load();
 document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+renderAnglerOptions();
 applyFishermanToUI();
 updateFishermanBanner();
 // Reveal login screen or area landing depending on the Supabase auth session
