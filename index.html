@@ -133,6 +133,24 @@
             color: var(--accent);
         }
 
+        /* Angler dropdown */
+        #fisherman-select {
+            width: 100%;
+            padding: 15px 42px 15px 16px;
+            background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2386efac' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 16px center;
+            backdrop-filter: blur(8px);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            font-size: 17px;
+            outline: none;
+            transition: border-color 0.15s;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        #fisherman-select:focus { border-color: var(--accent); }
+
         /* Inputs */
         input[type="number"],
         input[type="text"] {
@@ -980,16 +998,18 @@
         <!-- Fisherman name -->
         <div class="form-group">
             <label>Your Name</label>
-            <input type="text" id="fisherman-input" placeholder="Enter your name…"
-                   oninput="saveFisherman()" autocomplete="off">
-            <div class="name-presets">
-                <button class="name-preset" onclick="pickName('Steinar')">Steinar</button>
-                <button class="name-preset" onclick="pickName('Doddi')">Doddi</button>
-                <button class="name-preset" onclick="pickName('Smári')">Smári</button>
-                <button class="name-preset" onclick="pickName('Halli')">Halli</button>
-                <button class="name-preset" onclick="pickName('Gústi')">Gústi</button>
-                <button class="name-preset" onclick="pickName('Haukur')">Haukur</button>
-            </div>
+            <select id="fisherman-select" onchange="onFishermanSelect()">
+                <option value="">Select angler…</option>
+                <option value="Steinar">Steinar</option>
+                <option value="Doddi">Doddi</option>
+                <option value="Smári">Smári</option>
+                <option value="Halli">Halli</option>
+                <option value="Gústi">Gústi</option>
+                <option value="Haukur">Haukur</option>
+                <option value="__other__">Other…</option>
+            </select>
+            <input type="text" id="fisherman-input" placeholder="Enter name…"
+                   oninput="saveFisherman()" autocomplete="off" style="display:none;margin-top:8px">
         </div>
 
         <div id="fisherman-banner" class="fisherman-banner" style="display:none">
@@ -1658,21 +1678,44 @@ function saveFisherman() {
     state.fisherman = name;
     save();
     updateFishermanBanner();
-    updateNamePresets(name);
 }
 
-function pickName(name) {
-    document.getElementById('fisherman-input').value = name;
-    state.fisherman = name;
+function onFishermanSelect() {
+    const sel = document.getElementById('fisherman-select');
+    const input = document.getElementById('fisherman-input');
+    if (sel.value === '__other__') {
+        input.style.display = 'block';
+        input.value = '';
+        input.focus();
+        state.fisherman = '';
+        updateFishermanBanner();
+        return;
+    }
+    input.style.display = 'none';
+    input.value = '';
+    state.fisherman = sel.value;
     save();
     updateFishermanBanner();
-    updateNamePresets(name);
 }
 
-function updateNamePresets(name) {
-    document.querySelectorAll('.name-preset').forEach(b => {
-        b.classList.toggle('active', b.textContent === name);
-    });
+function applyFishermanToUI() {
+    const sel = document.getElementById('fisherman-select');
+    const input = document.getElementById('fisherman-input');
+    const name = state.fisherman || '';
+    const known = Array.from(sel.options).map(o => o.value);
+    if (name && known.includes(name)) {
+        sel.value = name;
+        input.style.display = 'none';
+        input.value = '';
+    } else if (name) {
+        sel.value = '__other__';
+        input.style.display = 'block';
+        input.value = name;
+    } else {
+        sel.value = '';
+        input.style.display = 'none';
+        input.value = '';
+    }
 }
 function updateFishermanBanner() {
     const name = state.fisherman;
@@ -1803,11 +1846,8 @@ function hideEditSpotList() { setTimeout(() => { document.getElementById('edit-s
 load();
 document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-if (state.fisherman) {
-    document.getElementById('fisherman-input').value = state.fisherman;
-    updateFishermanBanner();
-    updateNamePresets(state.fisherman);
-}
+applyFishermanToUI();
+updateFishermanBanner();
 // Reveal login screen or area landing depending on the Supabase auth session
 initAuth();
 subscribeRealtime();
