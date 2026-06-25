@@ -1245,7 +1245,6 @@ function save() {
         flyVersion: FLY_VERSION,
         spotsByArea: state.spotsByArea,
         spotsVersion: SPOTS_VERSION,
-        anglers: state.anglers,
         fisherman: state.fisherman,
         area: state.area
     };
@@ -1279,8 +1278,6 @@ function load() {
 
             if (prefs.flies)      state.flies      = prefs.flies;
             state.spotsByArea = map;
-            const savedAnglers = Array.isArray(prefs.anglers) ? prefs.anglers : [];
-            state.anglers = [...DEFAULT_ANGLERS, ...savedAnglers.filter(a => !DEFAULT_ANGLERS.includes(a))];
             if (prefs.fisherman)  state.fisherman  = prefs.fisherman;
             if (prefs.area)       state.area       = prefs.area;
             // Point the active spot list at the restored area (seed if first visit).
@@ -1328,6 +1325,11 @@ function subscribeRealtime() {
     db.channel('catches-changes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'catches' }, () => {
             loadCatches();
+        })
+        .subscribe();
+    db.channel('anglers-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'anglers' }, () => {
+            loadAnglers();
         })
         .subscribe();
 }
@@ -1719,13 +1721,31 @@ function renderAnglerOptions() {
         + '<option value="__other__">Other…</option>';
 }
 
-function commitCustomAngler() {
+async function loadAnglers() {
+    try {
+        const { data, error } = await db.from('anglers').select('name').order('name');
+        if (error) throw error;
+        const names = (data || []).map(r => r.name);
+        state.anglers = [...DEFAULT_ANGLERS, ...names.filter(n => !DEFAULT_ANGLERS.includes(n))];
+    } catch (e) {
+        // Table missing or DB asleep — fall back to the built-in list.
+        state.anglers = [...DEFAULT_ANGLERS];
+    }
+    renderAnglerOptions();
+    applyFishermanToUI();
+}
+
+async function commitCustomAngler() {
     const input = document.getElementById('fisherman-input');
     const name = input.value.trim();
     if (!name) return;
-    if (!state.anglers.includes(name)) state.anglers.push(name);
     state.fisherman = name;
     save();
+    if (!state.anglers.includes(name)) {
+        state.anglers.push(name);
+        // Share the new angler with everyone (ignore errors if offline / table missing).
+        try { await db.from('anglers').upsert({ name }, { onConflict: 'name' }); } catch (e) {}
+    }
     renderAnglerOptions();
     document.getElementById('fisherman-select').value = name;
     input.style.display = 'none';
@@ -1865,6 +1885,7 @@ document.getElementById('header-date').textContent =
 renderAnglerOptions();
 applyFishermanToUI();
 updateFishermanBanner();
+loadAnglers();
 // Reveal login screen or area landing depending on the Supabase auth session
 initAuth();
 subscribeRealtime();
