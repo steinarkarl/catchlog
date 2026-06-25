@@ -487,16 +487,18 @@
             justify-content: center;
             gap: 10px;
             width: 100%;
-            background: #fff;
-            color: #1f2937;
-            border: none;
+            background: rgba(255,255,255,0.06);
+            color: var(--text);
+            border: 2px solid var(--border);
             border-radius: 14px;
             padding: 14px 16px;
             font-size: 15px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
         }
-        .btn-google:active { opacity: 0.85; }
+        .btn-google:hover { border-color: var(--accent); background: rgba(255,255,255,0.09); }
+        .btn-google:active { transform: scale(0.98); opacity: 0.9; }
         #login-error {
             font-size: 13px;
             color: #f87171;
