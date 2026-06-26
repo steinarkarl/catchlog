@@ -150,6 +150,14 @@
             cursor: pointer;
         }
         #fisherman-select:focus { border-color: var(--accent); }
+        #fisherman-select option {
+            background: #12261a;
+            color: var(--text);
+        }
+        #fisherman-select option[value=""],
+        #fisherman-select option[value="__other__"] {
+            color: var(--text-muted);
+        }
 
         /* Inputs */
         input[type="number"],
