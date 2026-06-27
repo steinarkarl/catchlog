@@ -1847,6 +1847,9 @@ function showToast(msg) {
 function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function norm(s) {
+    return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
 
 
 // ─── Fisherman name ───────────────────────────────────────────────────────────
@@ -1866,13 +1869,13 @@ document.addEventListener('click', (e) => {
 
 function renderAnglerOptions(filter) {
     const menu = document.getElementById('fisherman-menu');
-    const f = (filter || '').trim().toLowerCase();
-    const matches = state.anglers.filter(n => n.toLowerCase().includes(f));
+    const f = norm(filter);
+    const matches = state.anglers.filter(n => norm(n).includes(f));
     let html = matches.map(n =>
         `<div class="ndd-item${n === state.fisherman ? ' active' : ''}" data-name="${esc(n)}">${esc(n)}</div>`
     ).join('');
     const typed = (filter || '').trim();
-    if (typed && !state.anglers.some(n => n.toLowerCase() === typed.toLowerCase())) {
+    if (typed && !state.anglers.some(n => norm(n) === norm(typed))) {
         html += `<div class="ndd-item other" data-new="${esc(typed)}">+ Add &quot;${esc(typed)}&quot;</div>`;
     }
     if (!html) html = '<div class="ndd-empty">No matches — keep typing to add</div>';
@@ -1894,7 +1897,7 @@ function onAnglerKey(e) {
         e.preventDefault();
         const val = document.getElementById('fisherman-search').value.trim();
         if (!val) return;
-        const exact = state.anglers.find(n => n.toLowerCase() === val.toLowerCase());
+        const exact = state.anglers.find(n => norm(n) === norm(val));
         if (exact) selectAngler(exact); else commitNewAngler(val);
     } else if (e.key === 'Escape') {
         closeAnglerMenu();
@@ -1914,7 +1917,7 @@ async function commitNewAngler(name) {
     if (!name) return;
     state.fisherman = name;
     save();
-    if (!state.anglers.includes(name)) {
+    if (!state.anglers.some(n => norm(n) === norm(name))) {
         state.anglers.push(name);
         // Share the new angler with everyone (ignore errors if offline / table missing).
         try { await db.from('anglers').upsert({ name }, { onConflict: 'name' }); } catch (e) {}
