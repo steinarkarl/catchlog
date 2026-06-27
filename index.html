@@ -576,6 +576,36 @@
             min-height: 18px;
             margin-top: 12px;
         }
+        .login-or { display: flex; align-items: center; gap: 10px; margin: 16px 0 14px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .login-or::before, .login-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .login-email {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255,255,255,0.06);
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .login-email:focus { border-color: var(--accent); }
+        .btn-magic {
+            width: 100%;
+            padding: 13px;
+            background: transparent;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.1s;
+        }
+        .btn-magic:hover { border-color: var(--accent); }
+        .btn-magic:active { transform: scale(0.98); }
+        #login-info { font-size: 13px; color: var(--accent); min-height: 18px; margin-top: 12px; }
         #password-error {
             font-size: 13px;
             color: #f87171;
@@ -748,6 +778,11 @@
             <span>Sign in with Google</span>
         </button>
         <div id="login-error"></div>
+        <div class="login-or"><span>or</span></div>
+        <input type="email" id="login-email" class="login-email" placeholder="you@email.com"
+               autocomplete="email" onkeydown="if(event.key==='Enter') sendMagicLink()">
+        <button class="btn-magic" onclick="sendMagicLink()">Send magic link</button>
+        <div id="login-info"></div>
     </div>
 </div>
 
@@ -1424,6 +1459,23 @@ function signInWithGoogle() {
     }).then(({ error }) => {
         if (error) document.getElementById('login-error').textContent = 'Sign-in failed: ' + error.message;
     });
+}
+
+function sendMagicLink() {
+    const email = document.getElementById('login-email').value.trim();
+    const errEl = document.getElementById('login-error');
+    const infoEl = document.getElementById('login-info');
+    errEl.textContent = ''; infoEl.textContent = '';
+    if (!email || !email.includes('@') || !email.includes('.')) {
+        errEl.textContent = 'Enter a valid email address.';
+        return;
+    }
+    infoEl.textContent = 'Sending…';
+    db.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })
+        .then(({ error }) => {
+            if (error) { infoEl.textContent = ''; errEl.textContent = 'Could not send link: ' + error.message; }
+            else { infoEl.textContent = '✓ Check your email for the sign-in link.'; }
+        });
 }
 async function signOut() {
     await db.auth.signOut();
