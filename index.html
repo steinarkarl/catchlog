@@ -195,6 +195,7 @@
         .ndd-item:hover { background: rgba(74,222,128,0.14); }
         .ndd-item.active { color: var(--accent); font-weight: 700; }
         .ndd-item.other { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; }
+        .ndd-empty { padding: 12px 14px; color: var(--text-muted); font-size: 14px; }
         #fisherman-select option {
             background: #12261a;
             color: var(--text);
@@ -1115,14 +1116,10 @@
         <div class="form-group">
             <label>Your Name</label>
             <div class="ndd" id="fisherman-dd">
-                <button type="button" class="ndd-toggle placeholder" id="fisherman-toggle" onclick="toggleAnglerMenu(event)">
-                    <span id="fisherman-toggle-label">Select angler…</span>
-                    <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1l5 5 5-5" fill="none" stroke="#86efac" stroke-width="2"/></svg>
-                </button>
+                <input type="text" id="fisherman-search" class="ndd-search" placeholder="Select or type angler…"
+                       autocomplete="off" oninput="onAnglerInput()" onfocus="openAnglerMenu()" onkeydown="onAnglerKey(event)">
                 <div class="ndd-menu" id="fisherman-menu" style="display:none"></div>
             </div>
-            <input type="text" id="fisherman-input" placeholder="Enter name…"
-                   oninput="saveFisherman()" onchange="commitCustomAngler()" autocomplete="off" style="display:none;margin-top:8px">
         </div>
 
         <div id="fisherman-banner" class="fisherman-banner" style="display:none">
@@ -1853,73 +1850,83 @@ function esc(s) {
 
 
 // ─── Fisherman name ───────────────────────────────────────────────────────────
-function saveFisherman() {
-    const name = document.getElementById('fisherman-input').value.trim();
-    state.fisherman = name;
-    save();
-    updateFishermanBanner();
-}
-
-function toggleAnglerMenu(e) {
-    if (e) e.stopPropagation();
-    const dd = document.getElementById('fisherman-dd');
-    const menu = document.getElementById('fisherman-menu');
-    const open = dd.classList.toggle('open');
-    menu.style.display = open ? 'block' : 'none';
-}
 function closeAnglerMenu() {
     document.getElementById('fisherman-dd').classList.remove('open');
     document.getElementById('fisherman-menu').style.display = 'none';
+}
+function openAnglerMenu() {
+    document.getElementById('fisherman-dd').classList.add('open');
+    renderAnglerOptions(document.getElementById('fisherman-search').value);
+    document.getElementById('fisherman-menu').style.display = 'block';
 }
 document.addEventListener('click', (e) => {
     const dd = document.getElementById('fisherman-dd');
     if (dd && !dd.contains(e.target)) closeAnglerMenu();
 });
 
-function setToggleLabel() {
-    const label = document.getElementById('fisherman-toggle-label');
-    const toggle = document.getElementById('fisherman-toggle');
-    if (state.fisherman) { label.textContent = state.fisherman; toggle.classList.remove('placeholder'); }
-    else { label.textContent = 'Select angler…'; toggle.classList.add('placeholder'); }
-}
-
-function renderAnglerOptions() {
+function renderAnglerOptions(filter) {
     const menu = document.getElementById('fisherman-menu');
-    menu.innerHTML = state.anglers.map(n =>
+    const f = (filter || '').trim().toLowerCase();
+    const matches = state.anglers.filter(n => n.toLowerCase().includes(f));
+    let html = matches.map(n =>
         `<div class="ndd-item${n === state.fisherman ? ' active' : ''}" data-name="${esc(n)}">${esc(n)}</div>`
-    ).join('') + '<div class="ndd-item other" data-other="1">New angler…</div>';
+    ).join('');
+    const typed = (filter || '').trim();
+    if (typed && !state.anglers.some(n => n.toLowerCase() === typed.toLowerCase())) {
+        html += `<div class="ndd-item other" data-new="${esc(typed)}">+ Add &quot;${esc(typed)}&quot;</div>`;
+    }
+    if (!html) html = '<div class="ndd-empty">No matches — keep typing to add</div>';
+    menu.innerHTML = html;
     menu.querySelectorAll('[data-name]').forEach(el =>
-        el.addEventListener('click', () => selectAngler(el.getAttribute('data-name'))));
-    menu.querySelector('[data-other]').addEventListener('click', chooseOther);
+        el.addEventListener('mousedown', (ev) => { ev.preventDefault(); selectAngler(el.getAttribute('data-name')); }));
+    const addEl = menu.querySelector('[data-new]');
+    if (addEl) addEl.addEventListener('mousedown', (ev) => { ev.preventDefault(); commitNewAngler(addEl.getAttribute('data-new')); });
 }
 
-function applyFishermanToUI() {
-    const input = document.getElementById('fisherman-input');
-    const name = state.fisherman || '';
-    if (name && !state.anglers.includes(name)) { input.style.display = 'block'; input.value = name; }
-    else { input.style.display = 'none'; input.value = ''; }
-    setToggleLabel();
-    renderAnglerOptions();
+function onAnglerInput() {
+    state.fisherman = document.getElementById('fisherman-search').value.trim();
+    updateFishermanBanner();
+    openAnglerMenu();
+}
+
+function onAnglerKey(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = document.getElementById('fisherman-search').value.trim();
+        if (!val) return;
+        const exact = state.anglers.find(n => n.toLowerCase() === val.toLowerCase());
+        if (exact) selectAngler(exact); else commitNewAngler(val);
+    } else if (e.key === 'Escape') {
+        closeAnglerMenu();
+    }
 }
 
 function selectAngler(name) {
     state.fisherman = name;
     save();
-    applyFishermanToUI();
+    document.getElementById('fisherman-search').value = name;
     updateFishermanBanner();
     closeAnglerMenu();
 }
 
-function chooseOther() {
-    state.fisherman = '';
-    setToggleLabel();
-    renderAnglerOptions();
+async function commitNewAngler(name) {
+    name = (name || '').trim();
+    if (!name) return;
+    state.fisherman = name;
+    save();
+    if (!state.anglers.includes(name)) {
+        state.anglers.push(name);
+        // Share the new angler with everyone (ignore errors if offline / table missing).
+        try { await db.from('anglers').upsert({ name }, { onConflict: 'name' }); } catch (e) {}
+    }
+    document.getElementById('fisherman-search').value = name;
     updateFishermanBanner();
     closeAnglerMenu();
-    const input = document.getElementById('fisherman-input');
-    input.style.display = 'block';
-    input.value = '';
-    input.focus();
+}
+
+function applyFishermanToUI() {
+    const input = document.getElementById('fisherman-search');
+    if (input) input.value = state.fisherman || '';
 }
 
 async function loadAnglers() {
@@ -1933,21 +1940,6 @@ async function loadAnglers() {
         state.anglers = [...DEFAULT_ANGLERS];
     }
     applyFishermanToUI();
-}
-
-async function commitCustomAngler() {
-    const input = document.getElementById('fisherman-input');
-    const name = input.value.trim();
-    if (!name) return;
-    state.fisherman = name;
-    save();
-    if (!state.anglers.includes(name)) {
-        state.anglers.push(name);
-        // Share the new angler with everyone (ignore errors if offline / table missing).
-        try { await db.from('anglers').upsert({ name }, { onConflict: 'name' }); } catch (e) {}
-    }
-    applyFishermanToUI();
-    updateFishermanBanner();
 }
 
 function updateFishermanBanner() {
