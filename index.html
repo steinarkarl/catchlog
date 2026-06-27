@@ -1373,7 +1373,6 @@ function save() {
         flyVersion: FLY_VERSION,
         spotsByArea: state.spotsByArea,
         spotsVersion: SPOTS_VERSION,
-        fisherman: state.fisherman,
         area: state.area
     };
     localStorage.setItem('catchlog_prefs', JSON.stringify(prefs));
@@ -1406,7 +1405,7 @@ function load() {
 
             if (prefs.flies)      state.flies      = prefs.flies;
             state.spotsByArea = map;
-            if (prefs.fisherman)  state.fisherman  = prefs.fisherman;
+            // Angler is intentionally NOT restored — the picker starts empty each load.
             if (prefs.area)       state.area       = prefs.area;
             // Point the active spot list at the restored area (seed if first visit).
             if (state.area) {
