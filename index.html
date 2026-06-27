@@ -1232,6 +1232,12 @@ const DEFAULT_SPOTS = ['Upper Pool', 'Long Run', 'Mill Bridge'];
 
 // Per-area default spot lists. Areas not listed here fall back to DEFAULT_SPOTS.
 const AREA_DEFAULT_SPOTS = {
+    'Veiðivötn': [
+        "Arnarpollur", "Breiðavatn", "Eskivatn", "Grænavatn", "Hraunvötn", "Kvíslarvatnsgígur",
+        "Krókspollur", "Kvíslarvatn", "Langavatn", "Litla Breiðavatn", "Litla Fossvatn", "Litlisjór",
+        "Litla Skálavatn", "Nýjavatn", "Ónýtavatn Fremra", "Ónýtavatn", "Ónefndavatn", "Pyttlur",
+        "Stóra Fossvatn", "Skyggnisvatn", "Snjóölduvatn", "Stóra Skálavatn", "Tjaldvatn"
+    ],
     'Laxá í Mývatnssveit': [
     "Geirastaðaskurður", "Brotaflói (Helluvað)", "Skriðuflói (Hofsstaðaey)", "Vörðuflói (Brettingstaðir)",
     "Vörðuflói (Hofsstaðaey)", "Lambeyjarstrengur (Helluvað)", "Stekkjarskerjarpollur", "Brotaflói (Hofsstaðir)",
@@ -1285,7 +1291,7 @@ const AREA_DEFAULT_SPOTS = {
     ]
 };
 const FLY_VERSION = 5;
-const SPOTS_VERSION = 1;
+const SPOTS_VERSION = 2;
 function defaultSpotsFor(area) {
     return AREA_DEFAULT_SPOTS[area] ? [...AREA_DEFAULT_SPOTS[area]] : [...DEFAULT_SPOTS];
 }
