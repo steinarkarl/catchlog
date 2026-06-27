@@ -1397,6 +1397,11 @@ function subscribeRealtime() {
             loadAnglers();
         })
         .subscribe();
+    db.channel('spots-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'spots' }, () => {
+            if (state.area) loadSpotsForArea(state.area);
+        })
+        .subscribe();
 }
 
 // ─── Password ─────────────────────────────────────────────────────────────────
@@ -1450,6 +1455,7 @@ function selectArea(area) {
     if (!Array.isArray(state.spotsByArea[area])) state.spotsByArea[area] = defaultSpotsFor(area);
     state.spots = state.spotsByArea[area];
     save();
+    loadSpotsForArea(area);
     // Update header
     document.getElementById('header-area-name').textContent = area;
     // Swap app background image if area has a custom one
@@ -1575,7 +1581,7 @@ function onSpotInput() {
         el.onmousedown = e => {
             e.preventDefault();
             const name = document.getElementById('spot-input').value.trim();
-            if (name && !state.spots.includes(name)) { state.spots.push(name); save(); }
+            if (name) persistSpot(name);
             pickSpot(name);
         };
         list.appendChild(el);
@@ -1701,11 +1707,37 @@ function renderManage() {
         `<div class="tag-chip">${esc(f)}<button onclick="removeItem('flies','${esc(f)}')">×</button></div>`
     ).join('') || '<span style="color:var(--text-muted);font-size:13px">No flies added yet</span>';
 }
+function persistSpot(name) {
+    if (!name || state.spots.includes(name)) return;
+    state.spots.push(name);
+    if (state.area) {
+        state.spotsByArea[state.area] = state.spots;
+        // Share the spot with everyone (ignore errors if offline / table missing).
+        try { db.from('spots').upsert({ area: state.area, name }, { onConflict: 'area,name' }); } catch (e) {}
+    }
+    save();
+}
+
+async function loadSpotsForArea(area) {
+    let shared = [];
+    try {
+        const { data, error } = await db.from('spots').select('name').eq('area', area).order('name');
+        if (!error && Array.isArray(data)) shared = data.map(r => r.name);
+    } catch (e) { /* table missing or DB asleep — defaults only */ }
+    const merged = [...defaultSpotsFor(area)];
+    shared.forEach(n => { if (!merged.includes(n)) merged.push(n); });
+    state.spotsByArea[area] = merged;
+    if (state.area === area) state.spots = merged;
+    save();
+    renderManage();
+}
+
 function addSpot() {
     const input = document.getElementById('new-spot-input');
     const name  = input.value.trim();
-    if (!name || state.spots.includes(name)) { if (!name) return; showToast('Already saved'); return; }
-    state.spots.push(name); save(); input.value = ''; renderManage();
+    if (!name) return;
+    if (state.spots.includes(name)) { showToast('Already saved'); return; }
+    persistSpot(name); input.value = ''; renderManage();
 }
 function addFly() {
     const input = document.getElementById('new-fly-input');
@@ -1715,6 +1747,10 @@ function addFly() {
 }
 function removeItem(key, name) {
     state[key] = state[key].filter(x => x !== name);
+    if (key === 'spots' && state.area) {
+        state.spotsByArea[state.area] = state.spots;
+        try { db.from('spots').delete().eq('area', state.area).eq('name', name); } catch (e) {}
+    }
     save(); renderManage();
 }
 
@@ -1948,7 +1984,7 @@ function onEditSpotInput() {
         el.onmousedown = e => {
             e.preventDefault();
             const name = document.getElementById('edit-spot').value.trim();
-            if (name && !state.spots.includes(name)) { state.spots.push(name); save(); }
+            if (name) persistSpot(name);
             document.getElementById('edit-spot').value = name; list.style.display='none';
         };
         list.appendChild(el);
@@ -1966,6 +2002,7 @@ updateFishermanBanner();
 loadAnglers();
 // Reveal login screen or area landing depending on the Supabase auth session
 initAuth();
+if (state.area) loadSpotsForArea(state.area);
 subscribeRealtime();
 </script>
 </body>
