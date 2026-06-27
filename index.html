@@ -1763,7 +1763,7 @@ function renderAnglerOptions() {
     const menu = document.getElementById('fisherman-menu');
     menu.innerHTML = state.anglers.map(n =>
         `<div class="ndd-item${n === state.fisherman ? ' active' : ''}" data-name="${esc(n)}">${esc(n)}</div>`
-    ).join('') + '<div class="ndd-item other" data-other="1">Other…</div>';
+    ).join('') + '<div class="ndd-item other" data-other="1">New angler…</div>';
     menu.querySelectorAll('[data-name]').forEach(el =>
         el.addEventListener('click', () => selectAngler(el.getAttribute('data-name'))));
     menu.querySelector('[data-other]').addEventListener('click', chooseOther);
