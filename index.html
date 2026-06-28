@@ -1280,6 +1280,9 @@
 const SUPABASE_URL = 'https://ntkzarfdqsropzaqtdow.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50a3phcmZkcXNyb3B6YXF0ZG93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzgwODQsImV4cCI6MjA5MTc1NDA4NH0.uLJ43uhpkA3slnruDK8jEmL2k8hYF_5gS6FARnyhI5Q';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const ADMIN_EMAIL = 'steinarkarlk@gmail.com'; // only this login may delete catches
+let currentEmail = '';
+function canDeleteCatches() { return currentEmail === ADMIN_EMAIL; }
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const DEFAULT_FLIES = [
@@ -1509,9 +1512,12 @@ async function signOut() {
 }
 async function initAuth() {
     const { data: { session } } = await db.auth.getSession();
+    currentEmail = session?.user?.email || '';
     if (session) showLandingScreen(); else showLoginScreen();
     db.auth.onAuthStateChange((_event, sess) => {
+        currentEmail = sess?.user?.email || '';
         if (sess) showLandingScreen(); else showLoginScreen();
+        if (typeof renderCatches === 'function' && state.catches.length) renderCatches();
     });
 }
 
@@ -1743,7 +1749,7 @@ function renderCatches() {
                 <span class="catch-tag">🪰 ${esc(c.fly)}</span>
                 ${c.fisherman ? `<span class="catch-tag" style="color:var(--text-muted)">👤 ${esc(c.fisherman)}</span>` : ''}
                 <button class="catch-edit"   onclick="openEdit(${c.id})">✎ Edit</button>
-                <button class="catch-delete" onclick="deleteCatch(${c.id})">✕ Delete</button>
+                ${canDeleteCatches() ? `<button class="catch-delete" onclick="deleteCatch(${c.id})">✕ Delete</button>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -1751,6 +1757,7 @@ function renderCatches() {
 
 // ─── Delete catch ─────────────────────────────────────────────────────────────
 async function deleteCatch(id) {
+    if (!canDeleteCatches()) { showToast('Only Steinar can delete catches'); return; }
     const { error } = await db.from('catches').delete().eq('id', id);
     if (error) { showToast('Error deleting catch ✗'); return; }
     state.catches = state.catches.filter(c => c.id !== id);
