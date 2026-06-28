@@ -1174,6 +1174,7 @@
 
     <!-- MANAGE VIEW -->
     <div id="view-manage" class="view">
+        <p id="signed-in-as" style="font-size:12px;color:var(--text-muted);margin-bottom:14px"></p>
         <div class="manage-section">
             <h3>Fishing Spots</h3>
             <div class="tag-list" id="spots-tag-list"></div>
@@ -1282,7 +1283,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const ADMIN_EMAIL = 'steinarkarlk@gmail.com'; // only this login may delete catches
 let currentEmail = '';
-function canDeleteCatches() { return currentEmail === ADMIN_EMAIL; }
+function canDeleteCatches() { return !!currentEmail && currentEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase(); }
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const DEFAULT_FLIES = [
@@ -1514,10 +1515,11 @@ async function initAuth() {
     const { data: { session } } = await db.auth.getSession();
     currentEmail = session?.user?.email || '';
     if (session) showLandingScreen(); else showLoginScreen();
+    if (state.catches.length) renderCatches();   // refresh delete-button visibility now email is known
     db.auth.onAuthStateChange((_event, sess) => {
         currentEmail = sess?.user?.email || '';
         if (sess) showLandingScreen(); else showLoginScreen();
-        if (typeof renderCatches === 'function' && state.catches.length) renderCatches();
+        if (state.catches.length) renderCatches();
     });
 }
 
@@ -1792,6 +1794,8 @@ function renderManage() {
     document.getElementById('flies-tag-list').innerHTML = state.flies.map(f =>
         `<div class="tag-chip">${esc(f)}<button onclick="removeItem('flies','${esc(f)}')">×</button></div>`
     ).join('') || '<span style="color:var(--text-muted);font-size:13px">No flies added yet</span>';
+    const sia = document.getElementById('signed-in-as');
+    if (sia) sia.textContent = currentEmail ? ('Signed in as ' + currentEmail + (canDeleteCatches() ? ' · can delete catches' : '')) : 'Not signed in';
 }
 function persistSpot(name) {
     if (!name || state.spots.includes(name)) return;
