@@ -1877,7 +1877,13 @@ function renderStats() {
         return { label: spot, value: n, sub: `${n} · ⌀${avg}cm` };
     }).sort((a, b) => b.value - a.value).slice(0, 10);
 
+    const biggest = [...shown].sort((a, b) => b.length - a.length).slice(0, 8).map(c => {
+        const dt = new Date(c.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        return { label: c.fisherman || 'Unknown', value: c.length, sub: `${c.length}cm · ${esc(c.spot || '—')} · ${dt}` };
+    });
+
     content.innerHTML =
+        `<div class="bar-section"><h3>🥇 Biggest catches</h3>${statBars(biggest, { rank: true })}</div>` +
         `<div class="bar-section"><h3>🏆 Leaderboard</h3>${statBars(leaders, { rank: true })}</div>` +
         `<div class="bar-section"><h3>🪰 Fly performance</h3>${statBars(flies)}</div>` +
         `<div class="bar-section"><h3>📍 Hot spots</h3>${statBars(spots)}</div>`;
