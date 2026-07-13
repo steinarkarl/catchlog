@@ -1907,7 +1907,17 @@ function renderStats() {
         return { label: c.fisherman || 'Unknown', value: c.length, sub: `${c.length}cm · ${esc(c.spot || '—')} · ${dt}` };
     });
 
+    const ovN = shown.length;
+    const ovAvg = (shown.reduce((s, c) => s + c.length, 0) / ovN).toFixed(1);
+    const ovLong = Math.max(...shown.map(c => c.length));
+    const overview = `<div class="stats-row">
+        <div class="stat-card"><div class="stat-num">${ovN}</div><div class="stat-label">Catches</div></div>
+        <div class="stat-card"><div class="stat-num">${ovAvg} cm</div><div class="stat-label">Avg Length</div></div>
+        <div class="stat-card"><div class="stat-num">${ovLong} cm</div><div class="stat-label">Longest</div></div>
+    </div>`;
+
     content.innerHTML =
+        overview +
         `<div class="bar-section"><h3>🥇 Biggest catches</h3>${statBars(biggest, { rank: true })}</div>` +
         `<div class="bar-section"><h3>🏆 Leaderboard</h3>${statBars(leaders, { rank: true })}</div>` +
         `<div class="bar-section"><h3>🪰 Fly performance</h3>${statBars(flies)}</div>` +
