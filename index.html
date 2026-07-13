@@ -1727,6 +1727,7 @@ async function logCatch() {
     const length = parseFloat(document.getElementById('length-input').value);
     const fly    = document.getElementById('fly-input').value.trim();
     const spot   = document.getElementById('spot-input').value.trim();
+    if (!state.fisherman)       { showToast('Please select an angler'); const el = document.getElementById('fisherman-search'); if (el) el.focus(); return; }
     if (!gender)                { showToast('Please select a gender'); return; }
     if (!length || length <= 0) { showToast('Please enter a length'); return; }
     if (!fly)                   { showToast('Please enter a fly'); return; }
