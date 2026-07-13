@@ -60,7 +60,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 16px;
-            padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
         }
 
         /* ── Bottom nav ── */
@@ -96,7 +95,7 @@
         .nav-btn svg { width: 24px; height: 24px; }
 
         /* ── Views ── */
-        .view { display: none; }
+        .view { display: none; padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
         .view.active { display: block; }
 
         /* ── Form ── */
