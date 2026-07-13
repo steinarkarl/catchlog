@@ -196,6 +196,19 @@
         .ndd-item.active { color: var(--accent); font-weight: 700; }
         .ndd-item.other { color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 4px; }
         .ndd-empty { padding: 12px 14px; color: var(--text-muted); font-size: 14px; }
+        #fisherman-search {
+            background: #0c1e14;
+            color: var(--text);
+            font-weight: 600;
+        }
+        #fisherman-search::placeholder { color: var(--text-muted); font-weight: 400; }
+        #fisherman-search:-webkit-autofill,
+        #fisherman-search:-webkit-autofill:hover,
+        #fisherman-search:-webkit-autofill:focus {
+            -webkit-text-fill-color: var(--text);
+            -webkit-box-shadow: 0 0 0 40px #0c1e14 inset;
+            caret-color: var(--text);
+        }
         #fisherman-select option {
             background: #12261a;
             color: var(--text);
