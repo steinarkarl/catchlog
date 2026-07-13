@@ -281,6 +281,9 @@
         }
 
         /* Stats */
+        .catch-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
+        .filter-chip { flex: 0 0 auto; padding: 7px 14px; background: var(--input-bg); border: 2px solid var(--border); border-radius: 20px; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .filter-chip.active { border-color: var(--accent); color: var(--accent); }
         .stats-row { display: flex; gap: 8px; margin-bottom: 16px; }
         .stat-card {
             flex: 1;
@@ -1166,6 +1169,7 @@
 
     <!-- CATCHES VIEW -->
     <div id="view-catches" class="view">
+        <div class="catch-filter" id="catch-filter"></div>
         <div class="stats-row" id="stats-row"></div>
         <button class="btn-secondary" onclick="exportCSV()">⬇ Export to CSV</button>
         <p id="catches-loading" style="display:none;text-align:center;color:var(--text-muted);padding:30px 0;font-size:14px">Loading catches…</p>
@@ -1283,7 +1287,9 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const ADMIN_EMAIL = 'steinarkarlk@gmail.com'; // only this login may delete catches
 let currentEmail = '';
+let catchFilter = '';
 function canDeleteCatches() { return !!currentEmail && currentEmail.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase(); }
+function canModifyCatch(c) { return canDeleteCatches() || (!!currentEmail && ((c && c.user_email) || '').toLowerCase() === currentEmail.toLowerCase()); }
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const DEFAULT_FLIES = [
@@ -1701,6 +1707,7 @@ async function logCatch() {
         timestamp:  new Date().toISOString(),
         fisherman:  state.fisherman || 'Unknown',
         area:       state.area,
+        user_email: currentEmail || null,
         gender, length, fly, spot
     }]).select();
 
@@ -1718,12 +1725,28 @@ async function logCatch() {
 }
 
 // ─── Render catches ───────────────────────────────────────────────────────────
+function setCatchFilter(v) { catchFilter = v; renderCatches(); }
 function renderCatches() {
     const list  = document.getElementById('catches-list');
     const stats = document.getElementById('stats-row');
-    const total = state.catches.length;
-    const avgLen     = total ? (state.catches.reduce((s, c) => s + c.length, 0) / total).toFixed(1) : '—';
-    const longestLen = total ? Math.max(...state.catches.map(c => c.length)) : '—';
+    const filterEl = document.getElementById('catch-filter');
+
+    const anglers = [...new Set(state.catches.map(c => c.fisherman).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    if (catchFilter && !anglers.includes(catchFilter)) catchFilter = '';
+    if (filterEl) {
+        if (anglers.length) {
+            let chips = `<button class="filter-chip${!catchFilter ? ' active' : ''}" data-filter="">All</button>`;
+            chips += anglers.map(a => `<button class="filter-chip${catchFilter === a ? ' active' : ''}" data-filter="${esc(a)}">${esc(a)}</button>`).join('');
+            filterEl.innerHTML = chips;
+            filterEl.querySelectorAll('[data-filter]').forEach(b =>
+                b.addEventListener('click', () => setCatchFilter(b.getAttribute('data-filter'))));
+        } else { filterEl.innerHTML = ''; }
+    }
+
+    const shown = catchFilter ? state.catches.filter(c => c.fisherman === catchFilter) : state.catches;
+    const total = shown.length;
+    const avgLen     = total ? (shown.reduce((s, c) => s + c.length, 0) / total).toFixed(1) : '—';
+    const longestLen = total ? Math.max(...shown.map(c => c.length)) : '—';
     stats.innerHTML = `
         <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">Total</div></div>
         <div class="stat-card"><div class="stat-num">${total ? avgLen + ' cm' : '—'}</div><div class="stat-label">Avg Length</div></div>
@@ -1731,15 +1754,16 @@ function renderCatches() {
     if (!total) {
         list.innerHTML = `<div class="empty-state">
             <p style="font-size:40px;margin-bottom:14px">🪰</p>
-            <p>No catches yet.<br>Head to the river and log your first one!</p>
+            <p>${catchFilter ? 'No catches for ' + esc(catchFilter) + '.' : 'No catches yet.<br>Head to the river and log your first one!'}</p>
         </div>`;
         return;
     }
-    list.innerHTML = state.catches.map(c => {
+    list.innerHTML = shown.map(c => {
         const d       = new Date(c.timestamp);
         const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         const gIcon   = c.gender === 'Male' ? '♂' : '♀';
+        const mine    = canModifyCatch(c);
         return `<div class="catch-card">
             <div class="catch-card-header">
                 <div class="catch-spot">${esc(c.spot)}</div>
@@ -1750,8 +1774,8 @@ function renderCatches() {
                 <span class="catch-tag">📏 ${c.length} cm</span>
                 <span class="catch-tag">🪰 ${esc(c.fly)}</span>
                 ${c.fisherman ? `<span class="catch-tag" style="color:var(--text-muted)">👤 ${esc(c.fisherman)}</span>` : ''}
-                <button class="catch-edit"   onclick="openEdit(${c.id})">✎ Edit</button>
-                ${canDeleteCatches() ? `<button class="catch-delete" onclick="deleteCatch(${c.id})">✕ Delete</button>` : ''}
+                ${mine ? `<button class="catch-edit" onclick="openEdit(${c.id})">✎ Edit</button>` : ''}
+                ${mine ? `<button class="catch-delete" onclick="deleteCatch(${c.id})">✕ Delete</button>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -1759,7 +1783,8 @@ function renderCatches() {
 
 // ─── Delete catch ─────────────────────────────────────────────────────────────
 async function deleteCatch(id) {
-    if (!canDeleteCatches()) { showToast('Only Steinar can delete catches'); return; }
+    const c = state.catches.find(x => x.id === id);
+    if (!c || !canModifyCatch(c)) { showToast('You can only delete your own catches'); return; }
     const { error } = await db.from('catches').delete().eq('id', id);
     if (error) { showToast('Error deleting catch ✗'); return; }
     state.catches = state.catches.filter(c => c.id !== id);
@@ -1999,6 +2024,8 @@ function selectEditGender(g) {
 }
 async function saveEdit() {
     if (!editingId) return;
+    const owned = state.catches.find(x => x.id === editingId);
+    if (!owned || !canModifyCatch(owned)) { showToast('You can only edit your own catches'); return; }
     const length = parseFloat(document.getElementById('edit-length').value);
     const fly    = document.getElementById('edit-fly').value.trim();
     const spot   = document.getElementById('edit-spot').value.trim();
