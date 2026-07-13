@@ -284,6 +284,16 @@
         .catch-filter { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 12px; -webkit-overflow-scrolling: touch; }
         .filter-chip { flex: 0 0 auto; padding: 7px 14px; background: var(--input-bg); border: 2px solid var(--border); border-radius: 20px; color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .filter-chip.active { border-color: var(--accent); color: var(--accent); }
+        .bar-section { margin-bottom: 26px; }
+        .bar-section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 12px; font-weight: 700; }
+        .bar-row { margin-bottom: 11px; }
+        .bar-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; gap: 8px; }
+        .bar-rank { color: var(--text-muted); font-weight: 700; margin-right: 6px; }
+        .bar-label { font-size: 14px; font-weight: 600; color: var(--text); }
+        .bar-val { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+        .bar-track { height: 8px; background: var(--input-bg); border-radius: 6px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--accent); border-radius: 6px; transition: width .3s; }
+        .bar-empty { color: var(--text-muted); font-size: 13px; }
         .stats-row { display: flex; gap: 8px; margin-bottom: 16px; }
         .stat-card {
             flex: 1;
@@ -1202,6 +1212,12 @@
 </div>
 
 <!-- ═══════════════ BOTTOM NAV ═══════════════ -->
+    <!-- STATS VIEW -->
+    <div id="view-stats" class="view">
+        <div class="catch-filter" id="stats-area-filter"></div>
+        <div id="stats-content"></div>
+    </div>
+
 <nav class="nav">
     <button class="nav-btn active" id="nav-log" onclick="showView('log')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1224,6 +1240,12 @@
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
         </svg>
         Manage
+    </button>
+    <button class="nav-btn" id="nav-stats" onclick="showView('stats')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        Stats
     </button>
 </nav>
 
@@ -1604,6 +1626,7 @@ function showView(name) {
     document.getElementById('nav-' + name).classList.add('active');
     if (name === 'catches') loadCatches();
     if (name === 'manage')  renderManage();
+    if (name === 'stats')   loadStats();
 }
 
 // ─── Gender ───────────────────────────────────────────────────────────────────
@@ -1782,6 +1805,84 @@ function renderCatches() {
 }
 
 // ─── Delete catch ─────────────────────────────────────────────────────────────
+// ─── Stats dashboards ─────────────────────────────────────────
+let allCatches = [];
+let statsArea = '';
+function setStatsArea(a) { statsArea = a; renderStats(); }
+
+async function loadStats() {
+    const content = document.getElementById('stats-content');
+    content.innerHTML = '<p class="bar-empty" style="text-align:center;padding:30px 0">Loading stats…</p>';
+    try {
+        const { data, error } = await db.from('catches').select('*');
+        if (error) throw error;
+        allCatches = data || [];
+    } catch (e) {
+        content.innerHTML = '<p class="bar-empty" style="text-align:center;padding:30px 0">Could not load stats ✗</p>';
+        return;
+    }
+    renderStats();
+}
+
+function statBars(rows, opts) {
+    if (!rows.length) return '<p class="bar-empty">No data yet.</p>';
+    const max = Math.max(...rows.map(r => r.value));
+    return rows.map((r, i) => `
+        <div class="bar-row">
+            <div class="bar-head">
+                <span class="bar-label">${opts && opts.rank ? `<span class="bar-rank">${i + 1}</span>` : ''}${esc(r.label)}</span>
+                <span class="bar-val">${r.sub}</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:${max ? (r.value / max * 100) : 0}%"></div></div>
+        </div>`).join('');
+}
+
+function groupCatches(arr, key) {
+    const m = {};
+    arr.forEach(c => { const k = c[key] || '—'; (m[k] = m[k] || []).push(c); });
+    return m;
+}
+
+function renderStats() {
+    const filterEl = document.getElementById('stats-area-filter');
+    const content  = document.getElementById('stats-content');
+    const areas = [...new Set(allCatches.map(c => c.area).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    if (statsArea && !areas.includes(statsArea)) statsArea = '';
+    let chips = `<button class="filter-chip${!statsArea ? ' active' : ''}" data-area="">All areas</button>`;
+    chips += areas.map(a => `<button class="filter-chip${statsArea === a ? ' active' : ''}" data-area="${esc(a)}">${esc(a)}</button>`).join('');
+    filterEl.innerHTML = chips;
+    filterEl.querySelectorAll('[data-area]').forEach(b => b.addEventListener('click', () => setStatsArea(b.getAttribute('data-area'))));
+
+    const shown = statsArea ? allCatches.filter(c => c.area === statsArea) : allCatches;
+    if (!shown.length) { content.innerHTML = '<p class="bar-empty" style="text-align:center;padding:30px 0">No catches yet.</p>'; return; }
+
+    const byA = groupCatches(shown.filter(c => c.fisherman), 'fisherman');
+    const leaders = Object.keys(byA).map(name => {
+        const cs = byA[name], n = cs.length;
+        const avg = (cs.reduce((s, c) => s + c.length, 0) / n).toFixed(1);
+        const mx = Math.max(...cs.map(c => c.length));
+        return { label: name, value: n, sub: `${n} · ⌀${avg}cm · max ${mx}cm`, mx };
+    }).sort((a, b) => b.value - a.value || b.mx - a.mx);
+
+    const byF = groupCatches(shown.filter(c => c.fly), 'fly');
+    const flies = Object.keys(byF).map(fly => {
+        const cs = byF[fly], n = cs.length, mx = Math.max(...cs.map(c => c.length));
+        return { label: fly, value: n, sub: `${n} · max ${mx}cm` };
+    }).sort((a, b) => b.value - a.value).slice(0, 10);
+
+    const byS = groupCatches(shown.filter(c => c.spot), 'spot');
+    const spots = Object.keys(byS).map(spot => {
+        const cs = byS[spot], n = cs.length;
+        const avg = (cs.reduce((s, c) => s + c.length, 0) / n).toFixed(1);
+        return { label: spot, value: n, sub: `${n} · ⌀${avg}cm` };
+    }).sort((a, b) => b.value - a.value).slice(0, 10);
+
+    content.innerHTML =
+        `<div class="bar-section"><h3>🏆 Leaderboard</h3>${statBars(leaders, { rank: true })}</div>` +
+        `<div class="bar-section"><h3>🪰 Fly performance</h3>${statBars(flies)}</div>` +
+        `<div class="bar-section"><h3>📍 Hot spots</h3>${statBars(spots)}</div>`;
+}
+
 async function deleteCatch(id) {
     const c = state.catches.find(x => x.id === id);
     if (!c || !canModifyCatch(c)) { showToast('You can only delete your own catches'); return; }
